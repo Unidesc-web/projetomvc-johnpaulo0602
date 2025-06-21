@@ -45,6 +45,24 @@ namespace projetomvc_johnpaulo0602.Controllers
                 .Select(c => new { id = c.Id, nome = c.Nome })
                 .ToListAsync();
 
+            // Buscar contas completas com instituição financeira para o widget
+            var contasCompletas = await _context.Contas
+                .Include(c => c.InstituicaoFinanceira)
+                .Where(c => c.UsuarioId == usuarioId)
+                .ToListAsync();
+
+            // Calcular saldo atual de cada conta (saldo inicial - gastos)
+            foreach (var conta in contasCompletas)
+            {
+                var gastosNaConta = await _context.Gastos
+                    .Where(g => g.ContaId == conta.Id)
+                    .SumAsync(g => g.Valor);
+                
+                conta.SaldoAtual = conta.SaldoInicial - gastosNaConta;
+            }
+
+            ViewBag.ContasCompletas = contasCompletas;
+
             return View(gastos);
         }
 

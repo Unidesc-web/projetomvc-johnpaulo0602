@@ -1,5 +1,6 @@
 // Models/Conta.cs
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace projetomvc_johnpaulo0602.Models
 {
@@ -12,6 +13,10 @@ namespace projetomvc_johnpaulo0602.Models
         
         [Required(ErrorMessage = "Saldo inicial é obrigatório")]
         public decimal SaldoInicial { get; set; }
+        
+        // Propriedade calculada para saldo atual (não mapeada no banco)
+        [NotMapped]
+        public decimal SaldoAtual { get; set; }
         
         // Relacionamentos
         public int InstituicaoFinanceiraId { get; set; }
