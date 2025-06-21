@@ -70,6 +70,18 @@ namespace projetomvc_johnpaulo0602.Controllers
                 _context.Add(usuario);
                 await _context.SaveChangesAsync();
 
+                // Criar conta carteira automaticamente para o novo usuário
+                var contaCarteira = new Conta
+                {
+                    Nome = "Carteira",
+                    SaldoInicial = 0,
+                    InstituicaoFinanceiraId = 1, // ID da Carteira
+                    UsuarioId = usuario.Id
+                };
+
+                _context.Add(contaCarteira);
+                await _context.SaveChangesAsync();
+
                 // Login automático após registro
                 HttpContext.Session.SetInt32("UsuarioId", usuario.Id);
                 HttpContext.Session.SetString("UsuarioNome", usuario.Nome);
