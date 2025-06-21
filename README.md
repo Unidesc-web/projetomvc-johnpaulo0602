@@ -15,3 +15,7 @@ Gerencie todos os seus gastos, com a possibilidade de editar, excluir e visualiz
 ### Contas
 Gerencie suas contas e carteiras.
 ![Contas](wwwroot/images/contas.png)
+
+### Categorias
+Gerencie as categorias dos seus gastos e receitas.
+![Categorias](wwwroot/images/categorias.png)
