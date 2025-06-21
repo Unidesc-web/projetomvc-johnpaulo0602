@@ -18,11 +18,19 @@ public class HomeController : Controller
 
     public async Task<IActionResult> Index()
     {
-        // Buscar gastos com relacionamentos
+        // Verificar se está logado
+        var usuarioId = HttpContext.Session.GetInt32("UsuarioId");
+        if (usuarioId == null)
+        {
+            return RedirectToAction("Login", "Auth");
+        }
+
+        // Buscar gastos com relacionamentos apenas do usuário logado
         var gastos = await _context.Gastos
             .Include(g => g.Categoria)
             .Include(g => g.Conta)
             .Include(g => g.Usuario)
+            .Where(g => g.UsuarioId == usuarioId)
             .ToListAsync();
 
         return View(gastos);

@@ -205,7 +205,7 @@
                     </div>
                 </div>
                 
-                <input type="hidden" name="UsuarioId" value="1">
+                <input type="hidden" name="UsuarioId" value="">
                 
                 <div class="d-flex gap-2 mt-4">
                     <button type="submit" class="btn btn-primary">
@@ -361,8 +361,8 @@
             ContaId: parseInt(formData.get('ContaId')),
             Tags: formData.get('Tags') || null,
             EstaPago: formData.get('EstaPago') === 'true',
-            EhDespesaFixa: formData.get('EhDespesaFixa') === 'true',
-            UsuarioId: parseInt(formData.get('UsuarioId'))
+            EhDespesaFixa: formData.get('EhDespesaFixa') === 'true'
+            // UsuarioId será definido automaticamente no backend
         };
         
         try {
@@ -398,8 +398,8 @@
             ContaId: parseInt(formData.get('ContaId')),
             Tags: formData.get('Tags') || null,
             EstaPago: formData.get('EstaPago') === 'true',
-            EhDespesaFixa: formData.get('EhDespesaFixa') === 'true',
-            UsuarioId: parseInt(formData.get('UsuarioId'))
+            EhDespesaFixa: formData.get('EhDespesaFixa') === 'true'
+            // UsuarioId será mantido do registro original
         };
         
         try {

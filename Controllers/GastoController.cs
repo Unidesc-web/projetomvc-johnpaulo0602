@@ -18,20 +18,29 @@ namespace projetomvc_johnpaulo0602.Controllers
         // GET: Gasto
         public async Task<IActionResult> Index()
         {
+            // Verificar se está logado
+            var usuarioId = HttpContext.Session.GetInt32("UsuarioId");
+            if (usuarioId == null)
+            {
+                return RedirectToAction("Login", "Auth");
+            }
+
             var gastos = await _context.Gastos
                 .Include(g => g.Categoria)
                 .Include(g => g.Conta)
                     .ThenInclude(c => c.InstituicaoFinanceira)
                 .Include(g => g.Usuario)
+                .Where(g => g.UsuarioId == usuarioId) // Filtrar por usuário logado
                 .OrderByDescending(g => g.Data)
                 .ToListAsync();
 
-            // Dados para os dropdowns nos modais
+            // Dados para os dropdowns nos modais (apenas do usuário logado)
             ViewBag.Categorias = await _context.Categorias
                 .Select(c => new { id = c.Id, nome = c.Nome })
                 .ToListAsync();
 
             ViewBag.Contas = await _context.Contas
+                .Where(c => c.UsuarioId == usuarioId) // Apenas contas do usuário
                 .Select(c => new { id = c.Id, nome = c.Nome })
                 .ToListAsync();
 
@@ -42,6 +51,16 @@ namespace projetomvc_johnpaulo0602.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] Gasto gasto)
         {
+            // Verificar se está logado
+            var usuarioId = HttpContext.Session.GetInt32("UsuarioId");
+            if (usuarioId == null)
+            {
+                return Unauthorized();
+            }
+
+            // Definir usuário automaticamente
+            gasto.UsuarioId = usuarioId.Value;
+
             // Remover validações desnecessárias para relacionamentos
             ModelState.Remove("Categoria");
             ModelState.Remove("Conta");
