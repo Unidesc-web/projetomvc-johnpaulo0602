@@ -1,0 +1,207 @@
+@model Usuario
+
+@{
+    ViewData["Title"] = "Meu Perfil";
+}
+
+<div class="container-fluid">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Home</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Meu Perfil</li>
+        </ol>
+    </nav>
+
+    <!-- Header da página -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold text-dark mb-1">
+                <i class="bi bi-person-circle text-primary me-2"></i>Meu Perfil
+            </h2>
+            <p class="text-muted mb-0">Gerencie suas informações pessoais</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8 col-xl-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white border-0 py-3">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-pencil-square text-primary me-2"></i>Informações Pessoais
+                    </h5>
+                </div>
+                <div class="card-body p-4">
+                    @if (!string.IsNullOrEmpty(ViewBag.SuccessMessage))
+                    {
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="bi bi-check-circle me-2"></i>@ViewBag.SuccessMessage
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(ViewBag.ErrorMessage))
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="bi bi-exclamation-triangle me-2"></i>@ViewBag.ErrorMessage
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    <form asp-action="Edit" method="post" id="perfilForm">
+                        <input type="hidden" asp-for="Id" />
+                        
+                        <div class="row g-3">
+                            <!-- Nome -->
+                            <div class="col-12">
+                                <label asp-for="Nome" class="form-label fw-semibold">Nome Completo</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-person"></i></span>
+                                    <input asp-for="Nome" class="form-control" placeholder="Digite seu nome completo" required>
+                                </div>
+                                <span asp-validation-for="Nome" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Email -->
+                            <div class="col-12">
+                                <label asp-for="Email" class="form-label fw-semibold">Email</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                                    <input asp-for="Email" type="email" class="form-control" placeholder="Digite seu email" required>
+                                </div>
+                                <span asp-validation-for="Email" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Senha -->
+                            <div class="col-12">
+                                <label asp-for="Senha" class="form-label fw-semibold">Senha</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                                    <input asp-for="Senha" type="password" class="form-control" placeholder="Digite uma nova senha (deixe vazio para manter)" minlength="6">
+                                    <button class="btn btn-outline-secondary" type="button" onclick="togglePassword()">
+                                        <i class="bi bi-eye" id="toggleIcon"></i>
+                                    </button>
+                                </div>
+                                <div class="form-text">Deixe em branco para manter a senha atual</div>
+                                <span asp-validation-for="Senha" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Telefone -->
+                            <div class="col-md-6">
+                                <label asp-for="Telefone" class="form-label fw-semibold">Telefone</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-telephone"></i></span>
+                                    <input asp-for="Telefone" type="tel" class="form-control" placeholder="(00) 00000-0000" required>
+                                </div>
+                                <span asp-validation-for="Telefone" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Cidade -->
+                            <div class="col-md-6">
+                                <label asp-for="Cidade" class="form-label fw-semibold">Cidade</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-geo-alt"></i></span>
+                                    <input asp-for="Cidade" class="form-control" placeholder="Digite sua cidade" required>
+                                </div>
+                                <span asp-validation-for="Cidade" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Estado -->
+                            <div class="col-md-6">
+                                <label asp-for="Estado" class="form-label fw-semibold">Estado</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-map"></i></span>
+                                    <select asp-for="Estado" class="form-select" required>
+                                        <option value="">Selecione o estado</option>
+                                        <option value="AC">Acre</option>
+                                        <option value="AL">Alagoas</option>
+                                        <option value="AP">Amapá</option>
+                                        <option value="AM">Amazonas</option>
+                                        <option value="BA">Bahia</option>
+                                        <option value="CE">Ceará</option>
+                                        <option value="DF">Distrito Federal</option>
+                                        <option value="ES">Espírito Santo</option>
+                                        <option value="GO">Goiás</option>
+                                        <option value="MA">Maranhão</option>
+                                        <option value="MT">Mato Grosso</option>
+                                        <option value="MS">Mato Grosso do Sul</option>
+                                        <option value="MG">Minas Gerais</option>
+                                        <option value="PA">Pará</option>
+                                        <option value="PB">Paraíba</option>
+                                        <option value="PR">Paraná</option>
+                                        <option value="PE">Pernambuco</option>
+                                        <option value="PI">Piauí</option>
+                                        <option value="RJ">Rio de Janeiro</option>
+                                        <option value="RN">Rio Grande do Norte</option>
+                                        <option value="RS">Rio Grande do Sul</option>
+                                        <option value="RO">Rondônia</option>
+                                        <option value="RR">Roraima</option>
+                                        <option value="SC">Santa Catarina</option>
+                                        <option value="SP">São Paulo</option>
+                                        <option value="SE">Sergipe</option>
+                                        <option value="TO">Tocantins</option>
+                                    </select>
+                                </div>
+                                <span asp-validation-for="Estado" class="text-danger small"></span>
+                            </div>
+                        </div>
+
+                        <!-- Botões -->
+                        <div class="d-flex gap-3 mt-4 pt-3 border-top">
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="bi bi-check-circle me-2"></i>Salvar Alterações
+                            </button>
+                            <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary px-4">
+                                <i class="bi bi-arrow-left me-2"></i>Voltar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Informações adicionais -->
+        <div class="col-lg-4 col-xl-6">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-light border-0 py-3">
+                    <h6 class="card-title mb-0">
+                        <i class="bi bi-info-circle text-info me-2"></i>Informações da Conta
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="text-center p-3 bg-light rounded">
+                                <i class="bi bi-calendar-check text-primary fs-4 mb-2 d-block"></i>
+                                <div class="fw-bold">Membro desde</div>
+                                <small class="text-muted">Janeiro 2025</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center p-3 bg-light rounded">
+                                <i class="bi bi-shield-check text-success fs-4 mb-2 d-block"></i>
+                                <div class="fw-bold">Status</div>
+                                <small class="text-success">Ativo</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function togglePassword() {
+        const passwordInput = document.querySelector('input[name="Senha"]');
+        const toggleIcon = document.getElementById('toggleIcon');
+        
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            toggleIcon.className = 'bi bi-eye-slash';
+        } else {
+            passwordInput.type = 'password';
+            toggleIcon.className = 'bi bi-eye';
+        }
+    }
+</script>
