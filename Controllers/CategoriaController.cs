@@ -112,6 +112,69 @@ namespace projetomvc_johnpaulo0602.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        // POST: Categoria/CreateJson (JSON)
+        [HttpPost]
+        [Route("Categoria/CreateJson")]
+        public async Task<IActionResult> CreateJson([FromBody] Categoria categoria)
+        {
+            // Remover validações desnecessárias para relacionamentos
+            ModelState.Remove("Gastos");
+
+            if (ModelState.IsValid)
+            {
+                _context.Add(categoria);
+                await _context.SaveChangesAsync();
+                return Ok();
+            }
+            return BadRequest(ModelState);
+        }
+
+        // POST: Categoria/EditJson/5 (JSON)
+        [HttpPost]
+        [Route("Categoria/EditJson/{id}")]
+        public async Task<IActionResult> EditJson(int id, [FromBody] Categoria categoria)
+        {
+            if (id != categoria.Id)
+            {
+                return BadRequest("ID não confere");
+            }
+
+            // Remover validações desnecessárias para relacionamentos
+            ModelState.Remove("Gastos");
+
+            if (ModelState.IsValid)
+            {
+                try
+                {
+                    _context.Update(categoria);
+                    await _context.SaveChangesAsync();
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    if (!CategoriaExists(categoria.Id))
+                        return NotFound();
+                    else
+                        throw;
+                }
+                return Ok();
+            }
+            return BadRequest(ModelState);
+        }
+
+        // POST: Categoria/DeleteJson/5 (JSON)
+        [HttpPost]
+        [Route("Categoria/DeleteJson/{id}")]
+        public async Task<IActionResult> DeleteJson(int id)
+        {
+            var categoria = await _context.Categorias.FindAsync(id);
+            if (categoria != null)
+            {
+                _context.Categorias.Remove(categoria);
+                await _context.SaveChangesAsync();
+            }
+            return Ok();
+        }
+
         private bool CategoriaExists(int id)
         {
             return _context.Categorias.Any(e => e.Id == id);
