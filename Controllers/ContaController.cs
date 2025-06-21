@@ -20,10 +20,18 @@ namespace projetomvc_johnpaulo0602.Controllers
         // GET: Conta
         public async Task<IActionResult> Index()
         {
+            // Verificar se está logado
+            var usuarioId = HttpContext.Session.GetInt32("UsuarioId");
+            if (usuarioId == null)
+            {
+                return RedirectToAction("Login", "Auth");
+            }
+
             var contas = await _context.Contas
                 .Include(c => c.InstituicaoFinanceira)
                 .Include(c => c.Usuario)
                 .Include(c => c.Gastos)
+                .Where(c => c.UsuarioId == usuarioId) // Filtrar por usuário logado
                 .ToListAsync();
 
             // Apenas dados das instituições para os dropdowns nos modais
@@ -38,6 +46,16 @@ namespace projetomvc_johnpaulo0602.Controllers
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] Conta conta)
         {
+            // Verificar se está logado
+            var usuarioId = HttpContext.Session.GetInt32("UsuarioId");
+            if (usuarioId == null)
+            {
+                return Unauthorized();
+            }
+
+            // Definir usuário automaticamente
+            conta.UsuarioId = usuarioId.Value;
+
             // Remover validações desnecessárias para relacionamentos
             ModelState.Remove("InstituicaoFinanceira");
             ModelState.Remove("Usuario");
@@ -60,6 +78,23 @@ namespace projetomvc_johnpaulo0602.Controllers
             {
                 return BadRequest("ID não confere");
             }
+
+            // Verificar se está logado
+            var usuarioId = HttpContext.Session.GetInt32("UsuarioId");
+            if (usuarioId == null)
+            {
+                return Unauthorized();
+            }
+
+            // Verificar se a conta pertence ao usuário logado
+            var contaExistente = await _context.Contas.FindAsync(id);
+            if (contaExistente == null || contaExistente.UsuarioId != usuarioId)
+            {
+                return NotFound();
+            }
+
+            // Definir usuário automaticamente
+            conta.UsuarioId = usuarioId.Value;
 
             // Remover validações desnecessárias para relacionamentos
             ModelState.Remove("InstituicaoFinanceira");
@@ -89,8 +124,15 @@ namespace projetomvc_johnpaulo0602.Controllers
         [HttpPost]
         public async Task<IActionResult> Delete(int id)
         {
+            // Verificar se está logado
+            var usuarioId = HttpContext.Session.GetInt32("UsuarioId");
+            if (usuarioId == null)
+            {
+                return Unauthorized();
+            }
+
             var conta = await _context.Contas.FindAsync(id);
-            if (conta != null)
+            if (conta != null && conta.UsuarioId == usuarioId) // Só permite deletar se for do usuário
             {
                 _context.Contas.Remove(conta);
                 await _context.SaveChangesAsync();

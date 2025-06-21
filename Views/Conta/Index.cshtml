@@ -141,7 +141,7 @@
                         ${generateInstituicaoOptions()}
                     </select>
                 </div>
-                <input type="hidden" name="UsuarioId" value="1">
+                <input type="hidden" name="UsuarioId" value="@Context.Session.GetInt32("UsuarioId")">
                 <div class="d-flex gap-2">
                     <button type="submit" class="btn btn-primary">
                         <i class="bi bi-check-circle me-2"></i>Salvar
