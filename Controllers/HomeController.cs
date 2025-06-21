@@ -1,21 +1,31 @@
+// Controllers/HomeController.cs
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using projetomvc_johnpaulo0602.Data;
 using projetomvc_johnpaulo0602.Models;
 
 namespace projetomvc_johnpaulo0602.Controllers;
 
 public class HomeController : Controller
 {
-    private readonly ILogger<HomeController> _logger;
+    private readonly AppDbContext _context;
 
-    public HomeController(ILogger<HomeController> logger)
+    public HomeController(AppDbContext context)
     {
-        _logger = logger;
+        _context = context;
     }
 
-    public IActionResult Index()
+    public async Task<IActionResult> Index()
     {
-        return View();
+        // Buscar gastos com relacionamentos
+        var gastos = await _context.Gastos
+            .Include(g => g.Categoria)
+            .Include(g => g.Conta)
+            .Include(g => g.Usuario)
+            .ToListAsync();
+
+        return View(gastos);
     }
 
     public IActionResult Privacy()
