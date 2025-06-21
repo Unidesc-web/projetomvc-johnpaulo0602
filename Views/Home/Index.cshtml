@@ -26,9 +26,9 @@
                 <p class="text-muted mb-0">Visão geral dos seus gastos</p>
             </div>
             <div>
-                <a asp-controller="Gasto" class="btn btn-primary">
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#gastoModal" onclick="openCreateModal()">
                     <i data-lucide="plus-circle" class="me-2"></i>Novo Gasto
-                </a>
+                </button>
             </div>
         </div>
     </div>
@@ -242,13 +242,162 @@ else
         <i data-lucide="wallet" style="font-size: 4rem;" class="text-muted mb-3"></i>
         <h4 class="text-muted">Nenhum gasto registrado</h4>
         <p class="text-muted">Comece adicionando seu primeiro gasto para ver o dashboard</p>
-        <a asp-controller="Gasto" class="btn btn-primary">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#gastoModal" onclick="openCreateModal()">
             <i data-lucide="plus-circle" class="me-2"></i>Adicionar Primeiro Gasto
-        </a>
+        </button>
     </div>
 }
 
+<!-- Modal Reutilizável -->
+<div class="modal fade" id="gastoModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">Modal Gasto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Conteúdo será carregado dinamicamente -->
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
+    // Dados vindos do backend
+    const categorias = @Html.Raw(Json.Serialize(ViewBag.Categorias ?? new List<object>()));
+    const contas = @Html.Raw(Json.Serialize(ViewBag.Contas ?? new List<object>()));
+
+    function openCreateModal() {
+        document.getElementById('modalTitle').textContent = 'Novo Gasto';
+        document.getElementById('modalBody').innerHTML = `
+            <form id="gastoForm" onsubmit="saveGasto(event)">
+                <div class="row g-3">
+                    <div class="col-md-12">
+                        <label class="form-label fw-semibold">Descrição</label>
+                        <input type="text" class="form-control" name="Descricao" required placeholder="Ex: Almoço no restaurante">
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Valor</label>
+                        <div class="input-group">
+                            <span class="input-group-text">R$</span>
+                            <input type="number" class="form-control" name="Valor" step="0.01" min="0.01" required placeholder="0,00">
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Data</label>
+                        <input type="date" class="form-control" name="Data" value="${new Date().toISOString().split('T')[0]}" required>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Categoria</label>
+                        <select class="form-select" name="CategoriaId" required>
+                            <option value="">Selecione uma categoria</option>
+                            ${generateCategoriaOptions()}
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Conta</label>
+                        <select class="form-select" name="ContaId" required>
+                            <option value="">Selecione uma conta</option>
+                            ${generateContaOptions()}
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-12">
+                        <label class="form-label fw-semibold">Tags <span class="text-muted">(opcional)</span></label>
+                        <input type="text" class="form-control" name="Tags" placeholder="Ex: trabalho, emergência (separadas por vírgula)">
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" name="EstaPago" value="true">
+                            <label class="form-check-label">Já foi pago</label>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" name="EhDespesaFixa" value="true">
+                            <label class="form-check-label">É despesa fixa</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <input type="hidden" name="UsuarioId" value="">
+                
+                <div class="d-flex gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle me-2"></i>Salvar
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-2"></i>Cancelar
+                    </button>
+                </div>
+            </form>
+        `;
+    }
+
+    function generateCategoriaOptions(selectedId = null) {
+        if (!categorias || categorias.length === 0) {
+            return '<option value="">Nenhuma categoria disponível</option>';
+        }
+        
+        return categorias.map(cat => 
+            `<option value="${cat.id}" ${cat.id == selectedId ? 'selected' : ''}>${cat.nome}</option>`
+        ).join('');
+    }
+
+    function generateContaOptions(selectedId = null) {
+        if (!contas || contas.length === 0) {
+            return '<option value="">Nenhuma conta disponível</option>';
+        }
+        
+        return contas.map(conta => 
+            `<option value="${conta.id}" ${conta.id == selectedId ? 'selected' : ''}>${conta.nome}</option>`
+        ).join('');
+    }
+
+    // Função para salvar gasto
+    async function saveGasto(event) {
+        event.preventDefault();
+        const formData = new FormData(event.target);
+        
+        const gasto = {
+            Descricao: formData.get('Descricao'),
+            Valor: parseFloat(formData.get('Valor')),
+            Data: formData.get('Data'),
+            CategoriaId: parseInt(formData.get('CategoriaId')),
+            ContaId: parseInt(formData.get('ContaId')),
+            Tags: formData.get('Tags') || null,
+            EstaPago: formData.get('EstaPago') === 'true',
+            EhDespesaFixa: formData.get('EhDespesaFixa') === 'true'
+            // UsuarioId será definido automaticamente no backend
+        };
+        
+        try {
+            const response = await fetch('/Gasto/Create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(gasto)
+            });
+            
+            if (response.ok) {
+                location.reload();
+            } else {
+                const error = await response.text();
+                alert('Erro ao salvar gasto: ' + error);
+            }
+        } catch (error) {
+            alert('Erro ao salvar gasto: ' + error.message);
+        }
+    }
+
     // Inicializar ícones do Lucide
     lucide.createIcons();
 </script>

@@ -30,8 +30,19 @@ namespace projetomvc_johnpaulo0602.Controllers
             var gastos = await _context.Gastos
                 .Include(g => g.Categoria)
                 .Include(g => g.Conta)
+                    .ThenInclude(c => c.InstituicaoFinanceira)
                 .Include(g => g.Usuario)
                 .Where(g => g.UsuarioId == usuarioId)
+                .ToListAsync();
+
+            // Dados para os dropdowns nos modais (apenas do usuário logado)
+            ViewBag.Categorias = await _context.Categorias
+                .Select(c => new { id = c.Id, nome = c.Nome })
+                .ToListAsync();
+
+            ViewBag.Contas = await _context.Contas
+                .Where(c => c.UsuarioId == usuarioId) // Apenas contas do usuário
+                .Select(c => new { id = c.Id, nome = c.Nome })
                 .ToListAsync();
 
             return View(gastos);
