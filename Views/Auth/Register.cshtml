@@ -1,3 +1,5 @@
+@model Usuario
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -42,42 +44,42 @@
             <div class="row g-3">
                 <div class="col-12">
                     <div class="form-floating">
-                        <input type="text" class="form-control" asp-for="Nome" placeholder="Nome completo" required>
-                        <label asp-for="Nome">Nome Completo</label>
+                        <input type="text" class="form-control" name="Nome" placeholder="Nome completo" required>
+                        <label for="Nome">Nome Completo</label>
                     </div>
                 </div>
                 
                 <div class="col-12">
                     <div class="form-floating">
-                        <input type="email" class="form-control" asp-for="Email" placeholder="seuemail@email.com" required>
-                        <label asp-for="Email">Email</label>
+                        <input type="email" class="form-control" name="Email" placeholder="seuemail@email.com" required>
+                        <label for="Email">Email</label>
                     </div>
                 </div>
                 
                 <div class="col-md-6">
                     <div class="form-floating">
-                        <input type="password" class="form-control" asp-for="Senha" placeholder="Senha" required minlength="6">
-                        <label asp-for="Senha">Senha</label>
+                        <input type="password" class="form-control" name="Senha" placeholder="Senha" required minlength="6">
+                        <label for="Senha">Senha</label>
                     </div>
                 </div>
                 
                 <div class="col-md-6">
                     <div class="form-floating">
-                        <input type="tel" class="form-control" asp-for="Telefone" placeholder="(11) 99999-9999" required>
-                        <label asp-for="Telefone">Telefone</label>
+                        <input type="tel" class="form-control" name="Telefone" placeholder="(11) 99999-9999" required>
+                        <label for="Telefone">Telefone</label>
                     </div>
                 </div>
                 
                 <div class="col-md-8">
                     <div class="form-floating">
-                        <input type="text" class="form-control" asp-for="Cidade" placeholder="Cidade" required>
-                        <label asp-for="Cidade">Cidade</label>
+                        <input type="text" class="form-control" name="Cidade" placeholder="Cidade" required>
+                        <label for="Cidade">Cidade</label>
                     </div>
                 </div>
                 
                 <div class="col-md-4">
                     <div class="form-floating">
-                        <select class="form-select" asp-for="Estado" required>
+                        <select class="form-select" name="Estado" required>
                             <option value="">UF</option>
                             <option value="AC">AC</option>
                             <option value="AL">AL</option>
@@ -107,7 +109,7 @@
                             <option value="SE">SE</option>
                             <option value="TO">TO</option>
                         </select>
-                        <label asp-for="Estado">Estado</label>
+                        <label for="Estado">Estado</label>
                     </div>
                 </div>
             </div>
