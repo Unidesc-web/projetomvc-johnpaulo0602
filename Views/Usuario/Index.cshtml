@@ -1,0 +1,436 @@
+@model IEnumerable<Usuario>
+
+@{
+    ViewData["Title"] = "Usuários";
+}
+
+<!-- DataTables CSS -->
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1">Usuários</h2>
+        <p class="text-muted mb-0">Gerencie os usuários do sistema</p>
+    </div>
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#usuarioModal" onclick="openCreateModal()">
+        <i class="bi bi-plus-circle me-2"></i>Novo Usuário
+    </button>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <table id="usuariosTable" class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Email</th>
+                    <th>Telefone</th>
+                    <th>Localização</th>
+                    <th>Contas</th>
+                    <th>Gastos</th>
+                    <th width="120">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var usuario in Model)
+                {
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="me-2 rounded-circle d-flex align-items-center justify-content-center" 
+                                     style="width: 32px; height: 32px; background: linear-gradient(135deg, #3498db, #2980b9);">
+                                    <span class="text-white small fw-bold">
+                                        @(usuario.Nome.Split(' ').Select(n => n.FirstOrDefault()).Take(2).Aggregate("", (acc, c) => acc + c))
+                                    </span>
+                                </div>
+                                <div>
+                                    <div class="fw-semibold">@usuario.Nome</div>
+                                    <small class="text-muted">ID: #@usuario.Id</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div>
+                                <span class="fw-semibold">@usuario.Email</span>
+                                <div class="small text-muted">
+                                    <i class="bi bi-envelope me-1"></i>Email
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="text-muted">@usuario.Telefone</span>
+                        </td>
+                        <td>
+                            <div class="small">
+                                <div class="fw-semibold">@usuario.Cidade</div>
+                                <span class="text-muted">@usuario.Estado</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge bg-success">
+                                @(usuario.Contas?.Count ?? 0)
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge bg-info">
+                                @(usuario.Gastos?.Count ?? 0)
+                            </span>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button type="button" class="btn btn-outline-secondary" 
+                                        data-bs-toggle="modal" data-bs-target="#usuarioModal" 
+                                        onclick="openEditModal(@usuario.Id, '@usuario.Nome', '@usuario.Email', '@usuario.Telefone', '@usuario.Cidade', '@usuario.Estado')"
+                                        title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-danger" 
+                                        data-bs-toggle="modal" data-bs-target="#usuarioModal" 
+                                        onclick="openDeleteModal(@usuario.Id, '@usuario.Nome', '@usuario.Email')"
+                                        title="Excluir">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Reutilizável -->
+<div class="modal fade" id="usuarioModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">Modal Usuário</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Conteúdo será carregado dinamicamente -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- DataTables JS -->
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+<script>
+    // Estados brasileiros
+    const estados = [
+        'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 
+        'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 
+        'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
+    ];
+
+    // Inicializar DataTables
+    $(document).ready(function() {
+        $('#usuariosTable').DataTable({
+            language: {
+                url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json'
+            },
+            pageLength: 10,
+            order: [[0, 'asc']],
+            columnDefs: [
+                { orderable: false, targets: [6] }
+            ]
+        });
+    });
+
+    function openCreateModal() {
+        document.getElementById('modalTitle').textContent = 'Novo Usuário';
+        document.getElementById('modalBody').innerHTML = `
+            <form id="usuarioForm" onsubmit="saveUsuario(event)">
+                <div class="row g-3">
+                    <div class="col-md-12">
+                        <label class="form-label fw-semibold">Nome Completo</label>
+                        <input type="text" class="form-control" name="Nome" required placeholder="Ex: João da Silva">
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Email</label>
+                        <input type="email" class="form-control" name="Email" required placeholder="joao@email.com">
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Telefone</label>
+                        <input type="tel" class="form-control" name="Telefone" required placeholder="(11) 99999-9999">
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Senha</label>
+                        <input type="password" class="form-control" name="Senha" required minlength="6" placeholder="Mínimo 6 caracteres">
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Confirmar Senha</label>
+                        <input type="password" class="form-control" name="ConfirmarSenha" required minlength="6" placeholder="Repita a senha">
+                    </div>
+                    
+                    <div class="col-md-8">
+                        <label class="form-label fw-semibold">Cidade</label>
+                        <input type="text" class="form-control" name="Cidade" required placeholder="Ex: São Paulo">
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Estado</label>
+                        <select class="form-select" name="Estado" required>
+                            <option value="">UF</option>
+                            ${generateEstadoOptions()}
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="d-flex gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle me-2"></i>Salvar
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-2"></i>Cancelar
+                    </button>
+                </div>
+            </form>
+        `;
+        
+        setupPasswordValidation();
+    }
+
+    function openEditModal(id, nome, email, telefone, cidade, estado) {
+        document.getElementById('modalTitle').textContent = 'Editar Usuário';
+        document.getElementById('modalBody').innerHTML = `
+            <form id="usuarioForm" onsubmit="updateUsuario(event, ${id})">
+                <input type="hidden" name="Id" value="${id}">
+                <div class="row g-3">
+                    <div class="col-md-12">
+                        <label class="form-label fw-semibold">Nome Completo</label>
+                        <input type="text" class="form-control" name="Nome" value="${nome}" required>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Email</label>
+                        <input type="email" class="form-control" name="Email" value="${email}" required>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Telefone</label>
+                        <input type="tel" class="form-control" name="Telefone" value="${telefone}" required>
+                    </div>
+                    
+                    <div class="col-md-12">
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <strong>Senha:</strong> Deixe em branco para manter a senha atual
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Nova Senha <span class="text-muted">(opcional)</span></label>
+                        <input type="password" class="form-control" name="Senha" minlength="6" placeholder="Nova senha">
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Confirmar Nova Senha</label>
+                        <input type="password" class="form-control" name="ConfirmarSenha" minlength="6" placeholder="Confirmar nova senha">
+                    </div>
+                    
+                    <div class="col-md-8">
+                        <label class="form-label fw-semibold">Cidade</label>
+                        <input type="text" class="form-control" name="Cidade" value="${cidade}" required>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Estado</label>
+                        <select class="form-select" name="Estado" required>
+                            <option value="">UF</option>
+                            ${generateEstadoOptions(estado)}
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="d-flex gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle me-2"></i>Salvar Alterações
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-2"></i>Cancelar
+                    </button>
+                </div>
+            </form>
+        `;
+        
+        setupPasswordValidation();
+    }
+
+    function openDeleteModal(id, nome, email) {
+        document.getElementById('modalTitle').textContent = 'Excluir Usuário';
+        document.getElementById('modalBody').innerHTML = `
+            <div class="alert alert-danger">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-exclamation-triangle-fill me-3" style="font-size: 1.5rem;"></i>
+                    <div>
+                        <h6 class="alert-heading mb-1">Atenção!</h6>
+                        <p class="mb-0">Esta ação irá excluir todas as contas e gastos do usuário.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-center mb-4">
+                <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" 
+                     style="width: 60px; height: 60px; background: linear-gradient(135deg, #e74c3c, #c0392b);">
+                    <i class="bi bi-person-x text-white fs-4"></i>
+                </div>
+                <h5>Excluir "${nome}"?</h5>
+                <p class="text-muted">${email}</p>
+            </div>
+            
+            <form id="deleteForm" onsubmit="deleteUsuario(event, ${id})">
+                <div class="d-flex gap-2 justify-content-center">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-2"></i>Sim, Excluir Definitivamente
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-2"></i>Cancelar
+                    </button>
+                </div>
+            </form>
+        `;
+    }
+
+    function generateEstadoOptions(selectedEstado = null) {
+        return estados.map(estado => 
+            `<option value="${estado}" ${estado === selectedEstado ? 'selected' : ''}>${estado}</option>`
+        ).join('');
+    }
+
+    function setupPasswordValidation() {
+        const senhaInput = document.querySelector('input[name="Senha"]');
+        const confirmarSenhaInput = document.querySelector('input[name="ConfirmarSenha"]');
+        
+        if (senhaInput && confirmarSenhaInput) {
+            confirmarSenhaInput.addEventListener('input', function() {
+                if (senhaInput.value !== this.value) {
+                    this.setCustomValidity('As senhas não coincidem');
+                } else {
+                    this.setCustomValidity('');
+                }
+            });
+            
+            senhaInput.addEventListener('input', function() {
+                if (confirmarSenhaInput.value && this.value !== confirmarSenhaInput.value) {
+                    confirmarSenhaInput.setCustomValidity('As senhas não coincidem');
+                } else {
+                    confirmarSenhaInput.setCustomValidity('');
+                }
+            });
+        }
+    }
+
+    // Funções para operações CRUD
+    async function saveUsuario(event) {
+        event.preventDefault();
+        const formData = new FormData(event.target);
+        
+        // Validar senhas
+        if (formData.get('Senha') !== formData.get('ConfirmarSenha')) {
+            alert('As senhas não coincidem');
+            return;
+        }
+        
+        const usuario = {
+            Nome: formData.get('Nome'),
+            Email: formData.get('Email'),
+            Senha: formData.get('Senha'),
+            Telefone: formData.get('Telefone'),
+            Cidade: formData.get('Cidade'),
+            Estado: formData.get('Estado')
+        };
+        
+        try {
+            const response = await fetch('/Usuario/Create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(usuario)
+            });
+            
+            if (response.ok) {
+                location.reload();
+            } else {
+                const error = await response.text();
+                alert('Erro ao salvar usuário: ' + error);
+            }
+        } catch (error) {
+            alert('Erro ao salvar usuário: ' + error.message);
+        }
+    }
+
+    async function updateUsuario(event, id) {
+        event.preventDefault();
+        const formData = new FormData(event.target);
+        
+        // Validar senhas se foram preenchidas
+        const senha = formData.get('Senha');
+        const confirmarSenha = formData.get('ConfirmarSenha');
+        
+        if (senha && senha !== confirmarSenha) {
+            alert('As senhas não coincidem');
+            return;
+        }
+        
+        const usuario = {
+            Id: id,
+            Nome: formData.get('Nome'),
+            Email: formData.get('Email'),
+            Telefone: formData.get('Telefone'),
+            Cidade: formData.get('Cidade'),
+            Estado: formData.get('Estado')
+        };
+        
+        // Só incluir senha se foi preenchida
+        if (senha) {
+            usuario.Senha = senha;
+        }
+        
+        try {
+            const response = await fetch(`/Usuario/Edit/${id}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(usuario)
+            });
+            
+            if (response.ok) {
+                location.reload();
+            } else {
+                const error = await response.text();
+                alert('Erro ao atualizar usuário: ' + error);
+            }
+        } catch (error) {
+            alert('Erro ao atualizar usuário: ' + error.message);
+        }
+    }
+
+    async function deleteUsuario(event, id) {
+        event.preventDefault();
+        
+        try {
+            const response = await fetch(`/Usuario/Delete/${id}`, {
+                method: 'POST'
+            });
+            
+            if (response.ok) {
+                location.reload();
+            } else {
+                const error = await response.text();
+                alert('Erro ao excluir usuário: ' + error);
+            }
+        } catch (error) {
+            alert('Erro ao excluir usuário: ' + error.message);
+        }
+    }
+</script>

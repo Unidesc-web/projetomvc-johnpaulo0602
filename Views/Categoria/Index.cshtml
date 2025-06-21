@@ -1,0 +1,368 @@
+@model IEnumerable<Categoria>
+
+@{
+    ViewData["Title"] = "Categorias";
+}
+
+<!-- DataTables CSS -->
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1">Categorias</h2>
+        <p class="text-muted mb-0">Gerencie as categorias dos seus gastos</p>
+    </div>
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#categoriaModal" onclick="openCreateModal()">
+        <i class="bi bi-plus-circle me-2"></i>Nova Categoria
+    </button>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <table id="categoriasTable" class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Cor</th>
+                    <th>Gastos</th>
+                    <th width="120">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var categoria in Model)
+                {
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="me-2 rounded-circle d-flex align-items-center justify-content-center" 
+                                     style="width: 32px; height: 32px; background-color: @categoria.Cor;">
+                                    <i class="bi bi-@categoria.Icone.ToLower() text-white small"></i>
+                                </div>
+                                <span class="fw-semibold">@categoria.Nome</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge rounded-pill" style="background-color: @categoria.Cor; color: white;">
+                                @categoria.Cor
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge bg-info">
+                                @(categoria.Gastos?.Count ?? 0)
+                            </span>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button type="button" class="btn btn-outline-secondary" 
+                                        data-bs-toggle="modal" data-bs-target="#categoriaModal" 
+                                        onclick="openEditModal(@categoria.Id, '@categoria.Nome', '@categoria.Cor', '@categoria.Icone')"
+                                        title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-danger" 
+                                        data-bs-toggle="modal" data-bs-target="#categoriaModal" 
+                                        onclick="openDeleteModal(@categoria.Id, '@categoria.Nome', '@categoria.Cor', '@categoria.Icone')"
+                                        title="Excluir">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Reutilizável -->
+<div class="modal fade" id="categoriaModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">Modal Categoria</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Conteúdo será carregado dinamicamente -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- DataTables JS -->
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+<script>
+    // Inicializar DataTables
+    $(document).ready(function() {
+        $('#categoriasTable').DataTable({
+            language: {
+                url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json'
+            },
+            pageLength: 10,
+            order: [[0, 'asc']],
+            columnDefs: [
+                { orderable: false, targets: [3] }
+            ]
+        });
+    });
+
+    // Funções para abrir diferentes modais
+    function openCreateModal() {
+        document.getElementById('modalTitle').textContent = 'Nova Categoria';
+        document.getElementById('modalBody').innerHTML = `
+            <form id="categoriaForm" onsubmit="saveCategoria(event)">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Nome</label>
+                    <input type="text" class="form-control" name="Nome" required placeholder="Ex: Alimentação">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Cor</label>
+                    <div class="input-group">
+                        <input type="color" class="form-control form-control-color" name="Cor" value="#FF6B6B">
+                        <input type="text" class="form-control" name="CorText" value="#FF6B6B" placeholder="#000000">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Ícone</label>
+                    <div class="row g-2">
+                        ${generateIconOptions()}
+                    </div>
+                </div>
+                <input type="hidden" name="Icone" id="selectedIcon" value="UtensilsCrossed">
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle me-2"></i>Salvar
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-2"></i>Cancelar
+                    </button>
+                </div>
+            </form>
+        `;
+        
+        setupColorPicker();
+        setupIconSelection();
+    }
+
+    function openEditModal(id, nome, cor, icone) {
+        document.getElementById('modalTitle').textContent = 'Editar Categoria';
+        document.getElementById('modalBody').innerHTML = `
+            <form id="categoriaForm" onsubmit="updateCategoria(event, ${id})">
+                <input type="hidden" name="Id" value="${id}">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Nome</label>
+                    <input type="text" class="form-control" name="Nome" value="${nome}" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Cor</label>
+                    <div class="input-group">
+                        <input type="color" class="form-control form-control-color" name="Cor" value="${cor}">
+                        <input type="text" class="form-control" name="CorText" value="${cor}">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Ícone</label>
+                    <div class="row g-2">
+                        ${generateIconOptions(icone)}
+                    </div>
+                </div>
+                <input type="hidden" name="Icone" id="selectedIcon" value="${icone}">
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle me-2"></i>Salvar Alterações
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-2"></i>Cancelar
+                    </button>
+                </div>
+            </form>
+        `;
+        
+        setupColorPicker();
+        setupIconSelection();
+    }
+
+    function openDeleteModal(id, nome, cor, icone) {
+        document.getElementById('modalTitle').textContent = 'Excluir Categoria';
+        document.getElementById('modalBody').innerHTML = `
+            <div class="alert alert-danger">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-exclamation-triangle-fill me-3" style="font-size: 1.5rem;"></i>
+                    <div>
+                        <h6 class="alert-heading mb-1">Atenção!</h6>
+                        <p class="mb-0">Esta ação não pode ser desfeita.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-center mb-4">
+                <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3" 
+                     style="width: 60px; height: 60px; background-color: ${cor};">
+                    <i class="bi bi-${icone.toLowerCase()} text-white fs-4"></i>
+                </div>
+                <h5>Excluir "${nome}"?</h5>
+            </div>
+            
+            <form id="deleteForm" onsubmit="deleteCategoria(event, ${id})">
+                <div class="d-flex gap-2 justify-content-center">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-2"></i>Sim, Excluir
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-2"></i>Cancelar
+                    </button>
+                </div>
+            </form>
+        `;
+    }
+
+    function generateIconOptions(selectedIcon = 'UtensilsCrossed') {
+        const icons = [
+            'UtensilsCrossed', 'Car', 'Heart', 'GraduationCap', 'Gamepad2',
+            'Home', 'Shirt', 'ShoppingCart', 'FileText', 'DollarSign',
+            'Briefcase', 'Gift', 'Phone', 'Laptop', 'Coffee'
+        ];
+        
+        return icons.map(icon => `
+            <div class="col-3">
+                <div class="icon-option text-center p-3 border rounded cursor-pointer ${icon === selectedIcon ? 'bg-primary text-white' : 'bg-light'}" 
+                     data-icon="${icon}" onclick="selectIcon('${icon}')">
+                    <i class="bi bi-${icon.toLowerCase()} fs-4"></i>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function selectIcon(iconName) {
+        // Remove seleção anterior
+        document.querySelectorAll('.icon-option').forEach(el => {
+            el.classList.remove('bg-primary', 'text-white');
+            el.classList.add('bg-light');
+        });
+        
+        // Adiciona seleção atual
+        const selectedElement = document.querySelector(`[data-icon="${iconName}"]`);
+        selectedElement.classList.remove('bg-light');
+        selectedElement.classList.add('bg-primary', 'text-white');
+        
+        // Atualiza campo hidden
+        document.getElementById('selectedIcon').value = iconName;
+    }
+
+    function setupColorPicker() {
+        const colorPicker = document.querySelector('input[name="Cor"]');
+        const colorText = document.querySelector('input[name="CorText"]');
+        
+        if (colorPicker && colorText) {
+            colorPicker.addEventListener('change', function() {
+                colorText.value = this.value;
+            });
+            
+            colorText.addEventListener('change', function() {
+                if (this.value.match(/^#[0-9A-Fa-f]{6}$/)) {
+                    colorPicker.value = this.value;
+                }
+            });
+        }
+    }
+
+    function setupIconSelection() {
+        document.querySelectorAll('.icon-option').forEach(el => {
+            el.style.cursor = 'pointer';
+        });
+    }
+
+    // Funções para operações CRUD
+    async function saveCategoria(event) {
+        event.preventDefault();
+        const formData = new FormData(event.target);
+        
+        const categoria = {
+            Nome: formData.get('Nome'),
+            Cor: formData.get('CorText'),
+            Icone: formData.get('Icone')
+        };
+        
+        try {
+            const response = await fetch('/Categoria/Create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(categoria)
+            });
+            
+            if (response.ok) {
+                location.reload();
+            } else {
+                alert('Erro ao salvar categoria');
+            }
+        } catch (error) {
+            alert('Erro ao salvar categoria');
+        }
+    }
+
+    async function updateCategoria(event, id) {
+        event.preventDefault();
+        const formData = new FormData(event.target);
+        
+        const categoria = {
+            Id: id,
+            Nome: formData.get('Nome'),
+            Cor: formData.get('CorText'),
+            Icone: formData.get('Icone')
+        };
+        
+        try {
+            const response = await fetch(`/Categoria/Edit/${id}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(categoria)
+            });
+            
+            if (response.ok) {
+                location.reload();
+            } else {
+                alert('Erro ao atualizar categoria');
+            }
+        } catch (error) {
+            alert('Erro ao atualizar categoria');
+        }
+    }
+
+    async function deleteCategoria(event, id) {
+        event.preventDefault();
+        
+        try {
+            const response = await fetch(`/Categoria/Delete/${id}`, {
+                method: 'POST'
+            });
+            
+            if (response.ok) {
+                location.reload();
+            } else {
+                alert('Erro ao excluir categoria');
+            }
+        } catch (error) {
+            alert('Erro ao excluir categoria');
+        }
+    }
+</script>
+
+<style>
+    .cursor-pointer {
+        cursor: pointer;
+    }
+    
+    .icon-option {
+        transition: all 0.2s ease;
+    }
+    
+    .icon-option:hover {
+        transform: scale(1.05);
+    }
+</style>

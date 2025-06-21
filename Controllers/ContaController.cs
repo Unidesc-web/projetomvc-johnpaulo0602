@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using projetomvc_johnpaulo0602.Data;
 using projetomvc_johnpaulo0602.Models;
+using System.Text.Json;
 
 namespace projetomvc_johnpaulo0602.Controllers
 {
@@ -19,70 +20,51 @@ namespace projetomvc_johnpaulo0602.Controllers
         // GET: Conta
         public async Task<IActionResult> Index()
         {
-            var contas = _context.Contas
-                .Include(c => c.InstituicaoFinanceira)
-                .Include(c => c.Usuario);
-            return View(await contas.ToListAsync());
-        }
-
-        // GET: Conta/Details/5
-        public async Task<IActionResult> Details(int? id)
-        {
-            if (id == null) return NotFound();
-
-            var conta = await _context.Contas
+            var contas = await _context.Contas
                 .Include(c => c.InstituicaoFinanceira)
                 .Include(c => c.Usuario)
-                .FirstOrDefaultAsync(m => m.Id == id);
-            
-            if (conta == null) return NotFound();
+                .Include(c => c.Gastos)
+                .ToListAsync();
 
-            return View(conta);
+            // Apenas dados das instituições para os dropdowns nos modais
+            ViewBag.InstituicoesFinanceiras = await _context.InstituicoesFinanceiras
+                .Select(i => new { id = i.Id, nome = i.Nome })
+                .ToListAsync();
+
+            return View(contas);
         }
 
-        // GET: Conta/Create
-        public IActionResult Create()
-        {
-            ViewData["InstituicaoFinanceiraId"] = new SelectList(_context.InstituicoesFinanceiras, "Id", "Nome");
-            ViewData["UsuarioId"] = new SelectList(_context.Usuarios, "Id", "Nome");
-            return View();
-        }
-
-        // POST: Conta/Create
+        // POST: Conta/Create (JSON)
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Conta conta)
+        public async Task<IActionResult> Create([FromBody] Conta conta)
         {
+            // Remover validações desnecessárias para relacionamentos
+            ModelState.Remove("InstituicaoFinanceira");
+            ModelState.Remove("Usuario");
+            ModelState.Remove("Gastos");
+
             if (ModelState.IsValid)
             {
                 _context.Add(conta);
                 await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                return Ok();
             }
-            ViewData["InstituicaoFinanceiraId"] = new SelectList(_context.InstituicoesFinanceiras, "Id", "Nome", conta.InstituicaoFinanceiraId);
-            ViewData["UsuarioId"] = new SelectList(_context.Usuarios, "Id", "Nome", conta.UsuarioId);
-            return View(conta);
+            return BadRequest(ModelState);
         }
 
-        // GET: Conta/Edit/5
-        public async Task<IActionResult> Edit(int? id)
-        {
-            if (id == null) return NotFound();
-
-            var conta = await _context.Contas.FindAsync(id);
-            if (conta == null) return NotFound();
-            
-            ViewData["InstituicaoFinanceiraId"] = new SelectList(_context.InstituicoesFinanceiras, "Id", "Nome", conta.InstituicaoFinanceiraId);
-            ViewData["UsuarioId"] = new SelectList(_context.Usuarios, "Id", "Nome", conta.UsuarioId);
-            return View(conta);
-        }
-
-        // POST: Conta/Edit/5
+        // POST: Conta/Edit/5 (JSON)
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, Conta conta)
+        public async Task<IActionResult> Edit(int id, [FromBody] Conta conta)
         {
-            if (id != conta.Id) return NotFound();
+            if (id != conta.Id)
+            {
+                return BadRequest("ID não confere");
+            }
+
+            // Remover validações desnecessárias para relacionamentos
+            ModelState.Remove("InstituicaoFinanceira");
+            ModelState.Remove("Usuario");
+            ModelState.Remove("Gastos");
 
             if (ModelState.IsValid)
             {
@@ -93,43 +75,27 @@ namespace projetomvc_johnpaulo0602.Controllers
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!ContaExists(conta.Id)) return NotFound();
-                    else throw;
+                    if (!ContaExists(conta.Id))
+                        return NotFound();
+                    else
+                        throw;
                 }
-                return RedirectToAction(nameof(Index));
+                return Ok();
             }
-            ViewData["InstituicaoFinanceiraId"] = new SelectList(_context.InstituicoesFinanceiras, "Id", "Nome", conta.InstituicaoFinanceiraId);
-            ViewData["UsuarioId"] = new SelectList(_context.Usuarios, "Id", "Nome", conta.UsuarioId);
-            return View(conta);
-        }
-
-        // GET: Conta/Delete/5
-        public async Task<IActionResult> Delete(int? id)
-        {
-            if (id == null) return NotFound();
-
-            var conta = await _context.Contas
-                .Include(c => c.InstituicaoFinanceira)
-                .Include(c => c.Usuario)
-                .FirstOrDefaultAsync(m => m.Id == id);
-            
-            if (conta == null) return NotFound();
-
-            return View(conta);
+            return BadRequest(ModelState);
         }
 
         // POST: Conta/Delete/5
-        [HttpPost, ActionName("Delete")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
+        [HttpPost]
+        public async Task<IActionResult> Delete(int id)
         {
             var conta = await _context.Contas.FindAsync(id);
             if (conta != null)
             {
                 _context.Contas.Remove(conta);
+                await _context.SaveChangesAsync();
             }
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
+            return Ok();
         }
 
         private bool ContaExists(int id)

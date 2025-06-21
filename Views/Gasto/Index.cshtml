@@ -4,123 +4,440 @@
     ViewData["Title"] = "Gastos";
 }
 
+<!-- DataTables CSS -->
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
         <h2 class="mb-1">Gastos</h2>
         <p class="text-muted mb-0">Gerencie todos os seus gastos</p>
     </div>
-    <a asp-action="Create" class="btn btn-primary">
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#gastoModal" onclick="openCreateModal()">
         <i class="bi bi-plus-circle me-2"></i>Novo Gasto
-    </a>
+    </button>
 </div>
 
-@if (Model.Any())
-{
-    <div class="card border-0 shadow-sm">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th class="border-0 ps-3">Descrição</th>
-                            <th class="border-0">Categoria</th>
-                            <th class="border-0">Conta</th>
-                            <th class="border-0">Data</th>
-                            <th class="border-0">Status</th>
-                            <th class="border-0 text-end">Valor</th>
-                            <th class="border-0 text-center pe-3">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var gasto in Model)
-                        {
-                            <tr>
-                                <td class="ps-3">
-                                    <div class="fw-semibold">@gasto.Descricao</div>
-                                    @if (!string.IsNullOrEmpty(gasto.Tags))
-                                    {
-                                        <small class="text-muted">@gasto.Tags</small>
-                                    }
-                                </td>
-                                <td>
-                                    <span class="badge" style="background-color: @gasto.Categoria.Cor; color: white;">
-                                        @gasto.Categoria.Nome
-                                    </span>
-                                </td>
-                                <td>
-                                    <span class="text-muted">@gasto.Conta.Nome</span>
-                                </td>
-                                <td>
-                                    <span class="text-muted">@gasto.Data.ToString("dd/MM/yyyy")</span>
-                                </td>
-                                <td>
-                                    @if (gasto.EstaPago)
-                                    {
-                                        <span class="badge bg-success">Pago</span>
-                                    }
-                                    else
-                                    {
-                                        <span class="badge bg-warning">Pendente</span>
-                                    }
-                                    
-                                    @if (gasto.EhDespesaFixa)
-                                    {
-                                        <span class="badge bg-info ms-1">Fixa</span>
-                                    }
-                                </td>
-                                <td class="text-end">
-                                    <span class="fw-semibold text-danger">R$ @gasto.Valor.ToString("N2")</span>
-                                </td>
-                                <td class="text-center pe-3">
-                                    <div class="btn-group btn-group-sm">
-                                        <a asp-action="Details" asp-route-id="@gasto.Id" class="btn btn-outline-primary btn-sm" title="Ver detalhes">
-                                            <i class="bi bi-eye"></i>
-                                        </a>
-                                        <a asp-action="Edit" asp-route-id="@gasto.Id" class="btn btn-outline-secondary btn-sm" title="Editar">
-                                            <i class="bi bi-pencil"></i>
-                                        </a>
-                                        <a asp-action="Delete" asp-route-id="@gasto.Id" class="btn btn-outline-danger btn-sm" title="Excluir">
-                                            <i class="bi bi-trash"></i>
-                                        </a>
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <table id="gastosTable" class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Descrição</th>
+                    <th>Categoria</th>
+                    <th>Conta</th>
+                    <th>Data</th>
+                    <th>Valor</th>
+                    <th>Status</th>
+                    <th width="120">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var gasto in Model)
+                {
+                    <tr>
+                        <td>
+                            <div>
+                                <div class="fw-semibold">@gasto.Descricao</div>
+                                @if (!string.IsNullOrEmpty(gasto.Tags))
+                                {
+                                    <div class="mt-1">
+                                        @foreach (var tag in gasto.Tags.Split(','))
+                                        {
+                                            <span class="badge bg-light text-dark me-1 small">@tag.Trim()</span>
+                                        }
                                     </div>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
+                                }
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge" style="background-color: @gasto.Categoria.Cor; color: white;">
+                                <i class="bi bi-@gasto.Categoria.Icone.ToLower() me-1"></i>
+                                @gasto.Categoria.Nome
+                            </span>
+                        </td>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="me-2 rounded" style="width: 20px; height: 20px; background-color: @gasto.Conta.InstituicaoFinanceira.Cor;"></div>
+                                <span class="text-muted">@gasto.Conta.Nome</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="text-muted">@gasto.Data.ToString("dd/MM/yyyy")</span>
+                        </td>
+                        <td>
+                            <span class="fw-semibold text-danger">R$ @gasto.Valor.ToString("N2")</span>
+                        </td>
+                        <td>
+                            <div class="d-flex flex-wrap gap-1">
+                                @if (gasto.EstaPago)
+                                {
+                                    <span class="badge bg-success small">Pago</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning small">Pendente</span>
+                                }
+                                
+                                @if (gasto.EhDespesaFixa)
+                                {
+                                    <span class="badge bg-info small">Fixa</span>
+                                }
+                            </div>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button type="button" class="btn btn-outline-secondary" 
+                                        data-bs-toggle="modal" data-bs-target="#gastoModal" 
+                                        onclick="openEditModal(@gasto.Id, '@gasto.Descricao', @gasto.Valor, '@gasto.Data.ToString("yyyy-MM-dd")', @gasto.CategoriaId, @gasto.ContaId, '@gasto.Tags', @gasto.EstaPago.ToString().ToLower(), @gasto.EhDespesaFixa.ToString().ToLower(), @gasto.UsuarioId)"
+                                        title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-danger" 
+                                        data-bs-toggle="modal" data-bs-target="#gastoModal" 
+                                        onclick="openDeleteModal(@gasto.Id, '@gasto.Descricao', '@gasto.Valor.ToString("N2")')"
+                                        title="Excluir">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Reutilizável -->
+<div class="modal fade" id="gastoModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">Modal Gasto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Conteúdo será carregado dinamicamente -->
             </div>
         </div>
     </div>
-    
-    <!-- Resumo simples -->
-    <div class="row mt-4">
-        <div class="col-md-6">
-            <div class="card border-0 bg-light">
-                <div class="card-body text-center">
-                    <h5 class="text-muted">Total de Gastos</h5>
-                    <h3 class="text-danger">R$ @Model.Sum(g => g.Valor).ToString("N2")</h3>
+</div>
+
+<!-- DataTables JS -->
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+<script>
+    // Dados vindos do backend
+    const categorias = @Html.Raw(Json.Serialize(ViewBag.Categorias ?? new List<object>()));
+    const contas = @Html.Raw(Json.Serialize(ViewBag.Contas ?? new List<object>()));
+
+    // Inicializar DataTables
+    $(document).ready(function() {
+        $('#gastosTable').DataTable({
+            language: {
+                url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json'
+            },
+            pageLength: 15,
+            order: [[3, 'desc']], // Ordenar por data (mais recente primeiro)
+            columnDefs: [
+                { orderable: false, targets: [6] },
+                { type: 'date-eu', targets: [3] } // Formato de data brasileiro
+            ]
+        });
+    });
+
+    function openCreateModal() {
+        document.getElementById('modalTitle').textContent = 'Novo Gasto';
+        document.getElementById('modalBody').innerHTML = `
+            <form id="gastoForm" onsubmit="saveGasto(event)">
+                <div class="row g-3">
+                    <div class="col-md-12">
+                        <label class="form-label fw-semibold">Descrição</label>
+                        <input type="text" class="form-control" name="Descricao" required placeholder="Ex: Almoço no restaurante">
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Valor</label>
+                        <div class="input-group">
+                            <span class="input-group-text">R$</span>
+                            <input type="number" class="form-control" name="Valor" step="0.01" min="0.01" required placeholder="0,00">
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Data</label>
+                        <input type="date" class="form-control" name="Data" value="${new Date().toISOString().split('T')[0]}" required>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Categoria</label>
+                        <select class="form-select" name="CategoriaId" required>
+                            <option value="">Selecione uma categoria</option>
+                            ${generateCategoriaOptions()}
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Conta</label>
+                        <select class="form-select" name="ContaId" required>
+                            <option value="">Selecione uma conta</option>
+                            ${generateContaOptions()}
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-12">
+                        <label class="form-label fw-semibold">Tags <span class="text-muted">(opcional)</span></label>
+                        <input type="text" class="form-control" name="Tags" placeholder="Ex: trabalho, emergência (separadas por vírgula)">
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" name="EstaPago" value="true">
+                            <label class="form-check-label">Já foi pago</label>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" name="EhDespesaFixa" value="true">
+                            <label class="form-check-label">É despesa fixa</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <input type="hidden" name="UsuarioId" value="1">
+                
+                <div class="d-flex gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle me-2"></i>Salvar
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-2"></i>Cancelar
+                    </button>
+                </div>
+            </form>
+        `;
+    }
+
+    function openEditModal(id, descricao, valor, data, categoriaId, contaId, tags, estaPago, ehDespesaFixa, usuarioId) {
+        document.getElementById('modalTitle').textContent = 'Editar Gasto';
+        document.getElementById('modalBody').innerHTML = `
+            <form id="gastoForm" onsubmit="updateGasto(event, ${id})">
+                <input type="hidden" name="Id" value="${id}">
+                <div class="row g-3">
+                    <div class="col-md-12">
+                        <label class="form-label fw-semibold">Descrição</label>
+                        <input type="text" class="form-control" name="Descricao" value="${descricao}" required>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Valor</label>
+                        <div class="input-group">
+                            <span class="input-group-text">R$</span>
+                            <input type="number" class="form-control" name="Valor" step="0.01" min="0.01" value="${valor}" required>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Data</label>
+                        <input type="date" class="form-control" name="Data" value="${data}" required>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Categoria</label>
+                        <select class="form-select" name="CategoriaId" required>
+                            <option value="">Selecione uma categoria</option>
+                            ${generateCategoriaOptions(categoriaId)}
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Conta</label>
+                        <select class="form-select" name="ContaId" required>
+                            <option value="">Selecione uma conta</option>
+                            ${generateContaOptions(contaId)}
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-12">
+                        <label class="form-label fw-semibold">Tags <span class="text-muted">(opcional)</span></label>
+                        <input type="text" class="form-control" name="Tags" value="${tags || ''}" placeholder="Ex: trabalho, emergência (separadas por vírgula)">
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" name="EstaPago" value="true" ${estaPago === 'true' ? 'checked' : ''}>
+                            <label class="form-check-label">Já foi pago</label>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" name="EhDespesaFixa" value="true" ${ehDespesaFixa === 'true' ? 'checked' : ''}>
+                            <label class="form-check-label">É despesa fixa</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <input type="hidden" name="UsuarioId" value="${usuarioId}">
+                
+                <div class="d-flex gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle me-2"></i>Salvar Alterações
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-2"></i>Cancelar
+                    </button>
+                </div>
+            </form>
+        `;
+    }
+
+    function openDeleteModal(id, descricao, valor) {
+        document.getElementById('modalTitle').textContent = 'Excluir Gasto';
+        document.getElementById('modalBody').innerHTML = `
+            <div class="alert alert-danger">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-exclamation-triangle-fill me-3" style="font-size: 1.5rem;"></i>
+                    <div>
+                        <h6 class="alert-heading mb-1">Atenção!</h6>
+                        <p class="mb-0">Esta ação não pode ser desfeita.</p>
+                    </div>
                 </div>
             </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card border-0 bg-light">
-                <div class="card-body text-center">
-                    <h5 class="text-muted">Quantidade</h5>
-                    <h3 class="text-primary">@Model.Count() gastos</h3>
+            
+            <div class="text-center mb-4">
+                <div class="rounded d-flex align-items-center justify-content-center mx-auto mb-3" 
+                     style="width: 60px; height: 60px; background-color: #dc3545;">
+                    <i class="bi bi-credit-card text-white fs-4"></i>
                 </div>
+                <h5>Excluir "${descricao}"?</h5>
+                <p class="text-muted">Valor: R$ ${valor}</p>
             </div>
-        </div>
-    </div>
-}
-else
-{
-    <!-- Estado vazio -->
-    <div class="text-center py-5">
-        <i class="bi bi-credit-card text-muted" style="font-size: 4rem;"></i>
-        <h4 class="mt-3 text-muted">Nenhum gasto encontrado</h4>
-        <p class="text-muted">Comece adicionando seu primeiro gasto</p>
-        <a asp-action="Create" class="btn btn-primary">
-            <i class="bi bi-plus-circle me-2"></i>Adicionar Primeiro Gasto
-        </a>
-    </div>
-}
+            
+            <form id="deleteForm" onsubmit="deleteGasto(event, ${id})">
+                <div class="d-flex gap-2 justify-content-center">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-2"></i>Sim, Excluir
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-2"></i>Cancelar
+                    </button>
+                </div>
+            </form>
+        `;
+    }
+
+    function generateCategoriaOptions(selectedId = null) {
+        if (!categorias || categorias.length === 0) {
+            return '<option value="">Nenhuma categoria disponível</option>';
+        }
+        
+        return categorias.map(cat => 
+            `<option value="${cat.id}" ${cat.id == selectedId ? 'selected' : ''}>${cat.nome}</option>`
+        ).join('');
+    }
+
+    function generateContaOptions(selectedId = null) {
+        if (!contas || contas.length === 0) {
+            return '<option value="">Nenhuma conta disponível</option>';
+        }
+        
+        return contas.map(conta => 
+            `<option value="${conta.id}" ${conta.id == selectedId ? 'selected' : ''}>${conta.nome}</option>`
+        ).join('');
+    }
+
+    // Funções para operações CRUD
+    async function saveGasto(event) {
+        event.preventDefault();
+        const formData = new FormData(event.target);
+        
+        const gasto = {
+            Descricao: formData.get('Descricao'),
+            Valor: parseFloat(formData.get('Valor')),
+            Data: formData.get('Data'),
+            CategoriaId: parseInt(formData.get('CategoriaId')),
+            ContaId: parseInt(formData.get('ContaId')),
+            Tags: formData.get('Tags') || null,
+            EstaPago: formData.get('EstaPago') === 'true',
+            EhDespesaFixa: formData.get('EhDespesaFixa') === 'true',
+            UsuarioId: parseInt(formData.get('UsuarioId'))
+        };
+        
+        try {
+            const response = await fetch('/Gasto/Create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(gasto)
+            });
+            
+            if (response.ok) {
+                location.reload();
+            } else {
+                const error = await response.text();
+                alert('Erro ao salvar gasto: ' + error);
+            }
+        } catch (error) {
+            alert('Erro ao salvar gasto: ' + error.message);
+        }
+    }
+
+    async function updateGasto(event, id) {
+        event.preventDefault();
+        const formData = new FormData(event.target);
+        
+        const gasto = {
+            Id: id,
+            Descricao: formData.get('Descricao'),
+            Valor: parseFloat(formData.get('Valor')),
+            Data: formData.get('Data'),
+            CategoriaId: parseInt(formData.get('CategoriaId')),
+            ContaId: parseInt(formData.get('ContaId')),
+            Tags: formData.get('Tags') || null,
+            EstaPago: formData.get('EstaPago') === 'true',
+            EhDespesaFixa: formData.get('EhDespesaFixa') === 'true',
+            UsuarioId: parseInt(formData.get('UsuarioId'))
+        };
+        
+        try {
+            const response = await fetch(`/Gasto/Edit/${id}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(gasto)
+            });
+            
+            if (response.ok) {
+                location.reload();
+            } else {
+                const error = await response.text();
+                alert('Erro ao atualizar gasto: ' + error);
+            }
+        } catch (error) {
+            alert('Erro ao atualizar gasto: ' + error.message);
+        }
+    }
+
+    async function deleteGasto(event, id) {
+        event.preventDefault();
+        
+        try {
+            const response = await fetch(`/Gasto/Delete/${id}`, {
+                method: 'POST'
+            });
+            
+            if (response.ok) {
+                location.reload();
+            } else {
+                const error = await response.text();
+                alert('Erro ao excluir gasto: ' + error);
+            }
+        } catch (error) {
+            alert('Erro ao excluir gasto: ' + error.message);
+        }
+    }
+</script>

@@ -1,0 +1,330 @@
+@model IEnumerable<Conta>
+
+@{
+    ViewData["Title"] = "Contas";
+}
+
+<!-- DataTables CSS -->
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1">Contas</h2>
+        <p class="text-muted mb-0">Gerencie suas contas e carteiras</p>
+    </div>
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#contaModal" onclick="openCreateModal()">
+        <i class="bi bi-plus-circle me-2"></i>Nova Conta
+    </button>
+</div>
+
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        <table id="contasTable" class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Instituição</th>
+                    <th>Saldo Inicial</th>
+                    <th>Usuário</th>
+                    <th>Gastos</th>
+                    <th width="120">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var conta in Model)
+                {
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="me-2 rounded d-flex align-items-center justify-content-center" 
+                                     style="width: 32px; height: 32px; background-color: @conta.InstituicaoFinanceira.Cor;">
+                                    <i class="bi bi-wallet2 text-white small"></i>
+                                </div>
+                                <span class="fw-semibold">@conta.Nome</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge rounded-pill" style="background-color: @conta.InstituicaoFinanceira.Cor; color: white;">
+                                @conta.InstituicaoFinanceira.Nome
+                            </span>
+                        </td>
+                        <td>
+                            <span class="fw-semibold text-success">R$ @conta.SaldoInicial.ToString("N2")</span>
+                        </td>
+                        <td>
+                            <span class="text-muted">@conta.Usuario.Nome</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-info">
+                                @(conta.Gastos?.Count ?? 0)
+                            </span>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button type="button" class="btn btn-outline-secondary" 
+                                        data-bs-toggle="modal" data-bs-target="#contaModal" 
+                                        onclick="openEditModal(@conta.Id, '@conta.Nome', @conta.SaldoInicial, @conta.InstituicaoFinanceiraId, @conta.UsuarioId)"
+                                        title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-danger" 
+                                        data-bs-toggle="modal" data-bs-target="#contaModal" 
+                                        onclick="openDeleteModal(@conta.Id, '@conta.Nome', '@conta.InstituicaoFinanceira.Nome')"
+                                        title="Excluir">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Reutilizável -->
+<div class="modal fade" id="contaModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">Modal Conta</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Conteúdo será carregado dinamicamente -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- DataTables JS -->
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+<script>
+    // Dados das instituições (vindos do backend)
+    const instituicoes = @Html.Raw(Json.Serialize(ViewBag.InstituicoesFinanceiras ?? new List<object>()));
+
+    // Inicializar DataTables
+    $(document).ready(function() {
+        $('#contasTable').DataTable({
+            language: {
+                url: 'https://cdn.datatables.net/plug-ins/1.13.6/i18n/pt-BR.json'
+            },
+            pageLength: 10,
+            order: [[0, 'asc']],
+            columnDefs: [
+                { orderable: false, targets: [5] }
+            ]
+        });
+    });
+
+    function openCreateModal() {
+        document.getElementById('modalTitle').textContent = 'Nova Conta';
+        document.getElementById('modalBody').innerHTML = `
+            <form id="contaForm" onsubmit="saveConta(event)">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Nome da Conta</label>
+                    <input type="text" class="form-control" name="Nome" required placeholder="Ex: Conta Corrente, Carteira">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Saldo Inicial</label>
+                    <div class="input-group">
+                        <span class="input-group-text">R$</span>
+                        <input type="number" class="form-control" name="SaldoInicial" step="0.01" min="0" value="0.00" required>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Instituição Financeira</label>
+                    <select class="form-select" name="InstituicaoFinanceiraId" required>
+                        <option value="">Selecione uma instituição</option>
+                        ${generateInstituicaoOptions()}
+                    </select>
+                </div>
+                <input type="hidden" name="UsuarioId" value="1">
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle me-2"></i>Salvar
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-2"></i>Cancelar
+                    </button>
+                </div>
+            </form>
+        `;
+    }
+
+    function openEditModal(id, nome, saldoInicial, instituicaoId, usuarioId) {
+        document.getElementById('modalTitle').textContent = 'Editar Conta';
+        document.getElementById('modalBody').innerHTML = `
+            <form id="contaForm" onsubmit="updateConta(event, ${id})">
+                <input type="hidden" name="Id" value="${id}">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Nome da Conta</label>
+                    <input type="text" class="form-control" name="Nome" value="${nome}" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Saldo Inicial</label>
+                    <div class="input-group">
+                        <span class="input-group-text">R$</span>
+                        <input type="number" class="form-control" name="SaldoInicial" step="0.01" min="0" value="${saldoInicial}" required>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Instituição Financeira</label>
+                    <select class="form-select" name="InstituicaoFinanceiraId" required>
+                        <option value="">Selecione uma instituição</option>
+                        ${generateInstituicaoOptions(instituicaoId)}
+                    </select>
+                </div>
+                <input type="hidden" name="UsuarioId" value="${usuarioId}">
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-circle me-2"></i>Salvar Alterações
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-2"></i>Cancelar
+                    </button>
+                </div>
+            </form>
+        `;
+    }
+
+    function openDeleteModal(id, nome, instituicao) {
+        document.getElementById('modalTitle').textContent = 'Excluir Conta';
+        document.getElementById('modalBody').innerHTML = `
+            <div class="alert alert-danger">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-exclamation-triangle-fill me-3" style="font-size: 1.5rem;"></i>
+                    <div>
+                        <h6 class="alert-heading mb-1">Atenção!</h6>
+                        <p class="mb-0">Esta ação não pode ser desfeita.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="text-center mb-4">
+                <div class="rounded d-flex align-items-center justify-content-center mx-auto mb-3" 
+                     style="width: 60px; height: 60px; background-color: #6c757d;">
+                    <i class="bi bi-wallet2 text-white fs-4"></i>
+                </div>
+                <h5>Excluir "${nome}"?</h5>
+                <p class="text-muted">${instituicao}</p>
+            </div>
+            
+            <form id="deleteForm" onsubmit="deleteConta(event, ${id})">
+                <div class="d-flex gap-2 justify-content-center">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-2"></i>Sim, Excluir
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-2"></i>Cancelar
+                    </button>
+                </div>
+            </form>
+        `;
+    }
+
+    function generateInstituicaoOptions(selectedId = null) {
+        if (!instituicoes || instituicoes.length === 0) {
+            return '<option value="">Nenhuma instituição disponível</option>';
+        }
+        
+        return instituicoes.map(inst => 
+            `<option value="${inst.id}" ${inst.id == selectedId ? 'selected' : ''}>${inst.nome}</option>`
+        ).join('');
+    }
+
+    function generateUsuarioOptions(selectedId = null) {
+        // Não é mais necessário - usuário será fixo
+        return '';
+    }
+
+    // Funções para operações CRUD
+    async function saveConta(event) {
+        event.preventDefault();
+        const formData = new FormData(event.target);
+        
+        const conta = {
+            Nome: formData.get('Nome'),
+            SaldoInicial: parseFloat(formData.get('SaldoInicial')),
+            InstituicaoFinanceiraId: parseInt(formData.get('InstituicaoFinanceiraId')),
+            UsuarioId: parseInt(formData.get('UsuarioId'))
+        };
+        
+        try {
+            const response = await fetch('/Conta/Create', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                },
+                body: JSON.stringify(conta)
+            });
+            
+            if (response.ok) {
+                location.reload();
+            } else {
+                const error = await response.text();
+                alert('Erro ao salvar conta: ' + error);
+            }
+        } catch (error) {
+            alert('Erro ao salvar conta: ' + error.message);
+        }
+    }
+
+    async function updateConta(event, id) {
+        event.preventDefault();
+        const formData = new FormData(event.target);
+        
+        const conta = {
+            Id: id,
+            Nome: formData.get('Nome'),
+            SaldoInicial: parseFloat(formData.get('SaldoInicial')),
+            InstituicaoFinanceiraId: parseInt(formData.get('InstituicaoFinanceiraId')),
+            UsuarioId: parseInt(formData.get('UsuarioId'))
+        };
+        
+        try {
+            const response = await fetch(`/Conta/Edit/${id}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                },
+                body: JSON.stringify(conta)
+            });
+            
+            if (response.ok) {
+                location.reload();
+            } else {
+                const error = await response.text();
+                alert('Erro ao atualizar conta: ' + error);
+            }
+        } catch (error) {
+            alert('Erro ao atualizar conta: ' + error.message);
+        }
+    }
+
+    async function deleteConta(event, id) {
+        event.preventDefault();
+        
+        try {
+            const response = await fetch(`/Conta/Delete/${id}`, {
+                method: 'POST',
+                headers: {
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                }
+            });
+            
+            if (response.ok) {
+                location.reload();
+            } else {
+                const error = await response.text();
+                alert('Erro ao excluir conta: ' + error);
+            }
+        } catch (error) {
+            alert('Erro ao excluir conta: ' + error.message);
+        }
+    }
+</script>
