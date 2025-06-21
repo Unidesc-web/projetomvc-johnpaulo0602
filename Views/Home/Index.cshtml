@@ -1,8 +1,254 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+﻿@model IEnumerable<Gasto>
+
+@{
+    ViewData["Title"] = "Dashboard";
+    var gastosDoMes = Model.Where(g => g.Data.Month == DateTime.Now.Month && g.Data.Year == DateTime.Now.Year);
+    var totalGastos = gastosDoMes.Sum(g => g.Valor);
+    var gastosRecentes = Model.OrderByDescending(g => g.Data).Take(5);
+    var gastosPorCategoria = gastosDoMes.GroupBy(g => g.Categoria)
+                                      .Select(group => new { 
+                                          Categoria = group.Key, 
+                                          Total = group.Sum(g => g.Valor) 
+                                      })
+                                      .OrderByDescending(x => x.Total)
+                                      .Take(4);
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<!-- CDN do Chart.js e Lucide -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="mb-1">Dashboard</h2>
+                <p class="text-muted mb-0">Visão geral dos seus gastos</p>
+            </div>
+            <div>
+                <a asp-controller="Gasto" asp-action="Create" class="btn btn-primary">
+                    <i data-lucide="plus-circle" class="me-2"></i>Novo Gasto
+                </a>
+            </div>
+        </div>
+    </div>
 </div>
+
+<!-- Cards de Estatísticas -->
+<div class="row g-4 mb-4">
+    <!-- Total de Gastos do Mês -->
+    <div class="col-xl-3 col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <div class="bg-danger bg-gradient rounded-3 p-3">
+                            <i data-lucide="arrow-down-circle" class="text-white"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <div class="small text-muted text-uppercase fw-semibold">Gastos do Mês</div>
+                        <div class="fs-4 fw-bold text-danger">R$ @totalGastos.ToString("N2")</div>
+                        <div class="small text-muted">@gastosDoMes.Count() transações</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Número de Transações -->
+    <div class="col-xl-3 col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <div class="bg-info bg-gradient rounded-3 p-3">
+                            <i data-lucide="credit-card" class="text-white"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <div class="small text-muted text-uppercase fw-semibold">Total Transações</div>
+                        <div class="fs-4 fw-bold text-info">@Model.Count()</div>
+                        <div class="small text-muted">Todas as transações</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pendentes -->
+    <div class="col-xl-3 col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <div class="bg-warning bg-gradient rounded-3 p-3">
+                            <i data-lucide="clock" class="text-white"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <div class="small text-muted text-uppercase fw-semibold">Pendentes</div>
+                        <div class="fs-4 fw-bold text-warning">@Model.Count(g => !g.EstaPago)</div>
+                        <div class="small text-muted">Não pagos</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Média por Transação -->
+    <div class="col-xl-3 col-md-6">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <div class="bg-success bg-gradient rounded-3 p-3">
+                            <i data-lucide="calculator" class="text-white"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <div class="small text-muted text-uppercase fw-semibold">Média/Transação</div>
+                        <div class="fs-4 fw-bold text-success">
+                            @if (Model.Any())
+                            {
+                                <text>R$ @(Model.Average(g => g.Valor).ToString("N2"))</text>
+                            }
+                            else
+                            {
+                                <text>R$ 0,00</text>
+                            }
+                        </div>
+                        <div class="small text-muted">Por gasto</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (Model.Any())
+{
+    <!-- Seção de Conteúdo Principal -->
+    <div class="row g-4">
+        <!-- Gastos Recentes -->
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">
+                            <i data-lucide="list" class="me-2"></i>Gastos Recentes
+                        </h5>
+                        <a asp-controller="Gasto" asp-action="Index" class="btn btn-sm btn-outline-primary">
+                            Ver Todos
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="border-0 ps-3">Descrição</th>
+                                    <th class="border-0">Categoria</th>
+                                    <th class="border-0">Data</th>
+                                    <th class="border-0 text-end pe-3">Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var gasto in gastosRecentes)
+                                {
+                                    <tr>
+                                        <td class="ps-3">
+                                            <div class="fw-semibold">@gasto.Descricao</div>
+                                            @if (!string.IsNullOrEmpty(gasto.Tags))
+                                            {
+                                                <small class="text-muted">@gasto.Tags</small>
+                                            }
+                                        </td>
+                                        <td>
+                                            <span class="badge" style="background-color: @gasto.Categoria.Cor; color: white;">
+                                                @gasto.Categoria.Nome
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="text-muted">@gasto.Data.ToString("dd/MM")</span>
+                                        </td>
+                                        <td class="text-end pe-3">
+                                            <span class="fw-semibold text-danger">R$ @gasto.Valor.ToString("N2")</span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gastos por Categoria -->
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white py-3">
+                    <h5 class="card-title mb-0">
+                        <i data-lucide="pie-chart" class="me-2"></i>Gastos por Categoria
+                    </h5>
+                </div>
+                <div class="card-body">
+                    @if (gastosPorCategoria.Any())
+                    {
+                        @foreach (var item in gastosPorCategoria)
+                        {
+                            var percentual = totalGastos > 0 ? (item.Total / totalGastos * 100) : 0;
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="flex-shrink-0">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center" 
+                                         style="width: 40px; height: 40px; background-color: @item.Categoria.Cor;">
+                                        <i data-lucide="@item.Categoria.Icone.ToLower()" class="text-white"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <div class="fw-semibold">@item.Categoria.Nome</div>
+                                            <small class="text-muted">@percentual.ToString("F1")% do total</small>
+                                        </div>
+                                        <div class="text-end">
+                                            <div class="fw-bold">R$ @item.Total.ToString("N2")</div>
+                                        </div>
+                                    </div>
+                                    <div class="progress mt-2" style="height: 6px;">
+                                        <div class="progress-bar" style="width: @percentual%; background-color: @item.Categoria.Cor;"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div class="text-center text-muted">
+                            <i data-lucide="info" class="mb-2"></i>
+                            <p>Nenhum gasto este mês</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <!-- Estado vazio -->
+    <div class="text-center py-5">
+        <i data-lucide="wallet" style="font-size: 4rem;" class="text-muted mb-3"></i>
+        <h4 class="text-muted">Nenhum gasto registrado</h4>
+        <p class="text-muted">Comece adicionando seu primeiro gasto para ver o dashboard</p>
+        <a asp-controller="Gasto" asp-action="Create" class="btn btn-primary">
+            <i data-lucide="plus-circle" class="me-2"></i>Adicionar Primeiro Gasto
+        </a>
+    </div>
+}
+
+<script>
+    // Inicializar ícones do Lucide
+    lucide.createIcons();
+</script>
