@@ -51,10 +51,48 @@
         }
         
         .sidebar-brand {
-            padding: 20px;
+            padding: 25px 20px;
             text-align: center;
             border-bottom: 1px solid rgba(255,255,255,0.1);
-            margin-bottom: 10px;
+            margin-bottom: 15px;
+            background: linear-gradient(135deg, rgba(52, 152, 219, 0.2) 0%, rgba(41, 128, 185, 0.2) 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .sidebar-brand::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            transition: left 0.5s;
+        }
+        
+        .sidebar-brand:hover::before {
+            left: 100%;
+        }
+        
+        .sidebar-brand h4 {
+            background: linear-gradient(45deg, #3498db, #2ecc71);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+            margin: 0;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar-brand small {
+            color: #bdc3c7;
+            font-size: 0.75rem;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
         }
         
         .sidebar-nav {
@@ -214,8 +252,8 @@
     <nav class="sidebar" id="sidebar">
         <!-- Logo/Brand -->
         <div class="sidebar-brand">
-            <h4 class="text-white fw-bold mb-1">💰 Controle de Gastos</h4>
-            <small class="text-muted">Painel Administrativo</small>
+            <h4>MVC FINANCE</h4>
+            <small>Sistema de Gestão</small>
         </div>
         
         <!-- Menu de navegação -->
